@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session
+from datetime import datetime
+
 import sqlite3
 
 
@@ -10,6 +12,49 @@ def get_db():
     conn = sqlite3.connect("cat_app.db")
     conn.row_factory = sqlite3.Row
     return conn
+
+# ---------------------------
+# 毎日1回の残量自動引き落とし
+# ---------------------------
+def deduct_daily_food():
+    conn = get_db()
+
+    # 1. cat_food_settings から user ごとの daily_amount と foods を取得
+    settings = conn.execute("""
+        SELECT c.cat_id, c.name AS cat_name, f.food_id, f.name AS food_name,
+               f.remaining_amount, s.daily_amount
+        FROM cat_food_settings s
+        JOIN foods f ON s.food_id = f.food_id
+        JOIN cats c ON s.cat_id = c.cat_id
+    """).fetchall()
+
+    for s in settings:
+        new_remaining = s["remaining_amount"] - s["daily_amount"]
+        if new_remaining < 0:
+            new_remaining = 0  # 残量がマイナスにならないように
+
+        # 2. foods テーブルを更新
+        conn.execute("""
+            UPDATE foods
+            SET remaining_amount = ?
+            WHERE food_id = ?
+        """, (new_remaining, s["food_id"]))
+
+        # 3. feeding_logs にも記録
+        conn.execute("""
+            INSERT INTO feeding_logs (cat_id, food_id, feeding_date, usage_amount, memo)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            s["cat_id"],
+            s["food_id"],
+            datetime.now(),
+            s["daily_amount"],
+            "自動引き落とし"
+        ))
+
+    conn.commit()
+    conn.close()
+    print("今日の自動残量引き落としが完了しました。")
 
 @app.route("/")
 def index():
@@ -54,7 +99,6 @@ def login():
     if user:
         session["user_id"] = user["user_id"]  # ← 追加
         return redirect(url_for("main"))
-        print(user.keys())
     else:
         return "メールアドレスまたはパスワードが違います"
 
@@ -119,7 +163,7 @@ def food_new():
 
     if request.method == "POST":
         name = request.form["name"]
-        content_amount = request.form["content_amount"]
+        content_amount = float(request.form["content_amount"])
         unit = request.form["unit"]
         purchase_link = request.form["purchase_link"]
 
@@ -137,6 +181,11 @@ def food_new():
         return redirect(url_for("food"))
 
     return render_template("food_new.html")
+
+@app.route("/run_daily_deduction")
+def run_daily_deduction():
+    deduct_daily_food()
+    return "残量の自動引き落としを実行しました"
 
 if __name__ == "__main__":
     app.run(debug=True)

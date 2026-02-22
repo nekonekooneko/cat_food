@@ -14,8 +14,11 @@
 
 <h1>愛猫情報</h1>
 
-<div class="list-item">どらやき ✏</div>
-<div class="list-item">ライ ✏</div>
+{% for cat in cats %}
+<div class="list-item">
+    {{ cat.name }} ✏
+</div>
+{% endfor %}
 
 <button class="plus">＋</button>
 

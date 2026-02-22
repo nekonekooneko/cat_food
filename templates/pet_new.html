@@ -8,24 +8,25 @@
 </head>
 <body>
 
-<div class="screen">
 
-<button class="btn-back">戻る</button>
+<form method="POST" action="/pet_new">
+    <div class="screen">
 
-<h1>愛猫登録</h1>
+    <button class="btn-back">戻る</button>
 
-<label>名前 必須</label>
-<input type="text">
+    <h1>愛猫登録</h1>
 
-<label>性別</label>
-<input type="text">
+    <label>名前 必須</label>
+    <input type="text" name="name" required>
 
-<label>生年月日</label>
-<input type="text">
+    <label>生年月日</label>
+    <input type="date" name="birth_date">
 
-<button class="btn-main">登録する</button>
+    <br><br>
+    <button type="submit" class="btn-main">登録する</button>
 
-</div>
+    </div>
+</form>
 
 </body>
 </html>

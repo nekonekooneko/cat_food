@@ -14,8 +14,11 @@
 
 <h1>ご飯一覧</h1>
 
-<div class="list-item">ロイヤルカナン ✏</div>
-<div class="list-item">ピュリナワン ✏</div>
+{% for food in foods %}
+<div class="list-item">
+    {{ food.name }} ✏ 
+</div>
+{% endfor %}
 
 <button class="plus">＋</button>
 

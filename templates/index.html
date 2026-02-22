@@ -8,18 +8,25 @@
 </head>
 <body>
 
-<div class="screen">
-<h1>エサを管理するnyans</h1>
+<form method="POST" action="/login">
+    <div class="screen">
+    <h1>エサを管理するnyans</h1>
 
-<label>メールアドレス</label>
-<input type="text">
+    <label>メールアドレス</label>
+    <input type="text" name="email">
 
-<label>パスワード</label>
-<input type="password">
+    <label>パスワード</label>
+    <input type="password" name="password">
 
-<button class="btn-main">ログインする</button>
-<button class="btn-main">新規登録</button>
-</div>
+    <button type="submit" class="btn-main">ログインする</button>
+    </form>
+    <br>
+
+    <a href="/register">
+    <button class="btn-main" type="button">新規登録</button>
+    </a>
+    </div>
+</form>
 
 </body>
 </html>

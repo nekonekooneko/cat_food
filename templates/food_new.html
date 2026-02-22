@@ -8,27 +8,30 @@
 </head>
 <body>
 
-<div class="screen">
+    <button class="btn-back">戻る</button>
 
-<button class="btn-back">戻る</button>
+    <form method="POST" action="/food_new">
 
-<h1>新規ご飯登録</h1>
+        <div class="screen">
 
-<label>名前</label>
-<input type="text">
+        <h1>新規ご飯登録</h1>
 
-<label>内容量</label>
-<input type="text">
+        <label>名前</label>
+        <input type="text" name="name" required>
 
-<label>単位</label>
-<input type="text">
+        <label>内容量</label>
+        <input type="text" name="content_amount">
 
-<label>購入リンク</label>
-<input type="text">
+        <label>単位</label>
+        <input type="text" name="unit">
 
-<button class="btn-main">登録する</button>
+        <label>購入リンク</label>
+        <input type="text" name="purchase_link">
 
-</div>
+        <button type="submit" class="btn-main">登録する</button>
+
+        </div>  
+    </form>
 
 </body>
 </html>

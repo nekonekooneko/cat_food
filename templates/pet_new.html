@@ -11,7 +11,7 @@
 <!-- 追加ここまで -->
 
 <title>愛猫登録</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
@@ -19,7 +19,11 @@
 <form method="POST" action="/pet_new">
     <div class="screen">
 
-    <button class="btn-back">戻る</button>
+   <button type="button"
+        class="btn-back"
+        onclick="location.href='{{ url_for('pets') }}'">
+    戻る
+</button>
 
     <h1>愛猫登録</h1>
 

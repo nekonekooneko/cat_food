@@ -62,6 +62,12 @@ def deduct_daily_food():
             VALUES (?, ?, ?, ?, ?)
         """, (s["cat_id"], s["food_id"], datetime.now().strftime("%Y-%m-%d %H:%M:%S"), s["daily_amount"], "自動引き落とし"))
 
+        # ★ Renderの確認が終わったら消す
+        print(f"--- 在庫更新ログ ---")
+        print(f"猫: {s['cat_name']}, エサ: {s['food_name']}")
+        print(f"引き落とし量: {s['daily_amount']}, 更新後の残量: {new_remaining}")
+        print(f"------------------")
+        
     conn.commit()
     conn.close()
     print("今日の自動残量引き落としが完了しました。")

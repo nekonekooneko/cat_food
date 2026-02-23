@@ -61,12 +61,6 @@ def deduct_daily_food():
             INSERT INTO feeding_logs (cat_id, food_id, feeding_date, usage_amount, memo)
             VALUES (?, ?, ?, ?, ?)
         """, (s["cat_id"], s["food_id"], datetime.now().strftime("%Y-%m-%d %H:%M:%S"), s["daily_amount"], "自動引き落とし"))
-
-        # ★ Renderの確認が終わったら消す
-        print(f"--- 在庫更新ログ ---")
-        print(f"猫: {s['cat_name']}, エサ: {s['food_name']}")
-        print(f"引き落とし量: {s['daily_amount']}, 更新後の残量: {new_remaining}")
-        print(f"------------------")
         
     conn.commit()
     conn.close()
@@ -314,17 +308,6 @@ def order_no(food_id):
 def reset_state(food_id):
     session.pop(f"food_state_{food_id}", None)
     return redirect(url_for("main"))
-
-# ★Renderで挙動を確認出来たら消す
-@app.route("/test-setup")
-def test_setup():
-    conn = get_db()
-    # テープルにテストデータを直接1件入れる
-    # ※user_idやcat_idは、新規登録した際のもの（通常は1）に合わせてください
-    conn.execute("INSERT INTO cat_food_settings (cat_id, food_id, daily_amount) VALUES (1, 1, 100)")
-    conn.commit()
-    conn.close()
-    return "Test data registered!"
-    
+   
 if __name__ == "__main__":
     app.run()

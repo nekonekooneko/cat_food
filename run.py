@@ -77,8 +77,17 @@ def deduct_daily_food():
 # ---------------------------
 @app.route("/cron/update-stock")
 def cron_update_stock():
-    deduct_daily_food()
-    return "Stock update successful", 200
+    deduct_daily_food() # 在庫を引く処理を実行
+    
+    # 実行後、最新の在庫をDBから1件取ってくる
+    conn = get_db()
+    food = conn.execute("SELECT name, remaining_amount FROM foods LIMIT 1").fetchone()
+    conn.close()
+    
+    if food:
+        return f"成功！ {food['name']} の現在の残量は {food['remaining_amount']} です。"
+    else:
+        return "成功しましたが、在庫データが見つかりません。"
 
 @app.route("/")
 def index():

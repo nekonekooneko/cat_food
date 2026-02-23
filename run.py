@@ -19,7 +19,27 @@ def index():
 def main():
     if "user_id" not in session:
         return redirect(url_for("index"))
-    return render_template("main.html")
+
+    # ★UI確認用のダミーデータ（あとでDB連携に差し替える）
+    base_items = [
+        {"food_id": 1, "name": "ご飯A", "purchase_link": "https://example.com/a", "days_left": 2},
+        {"food_id": 2, "name": "ご飯B", "purchase_link": "https://example.com/b", "days_left": 1},
+    ]
+
+    # ★foodごとの状態を session から反映（無ければ emergency 扱い）
+    emergency_items = []
+    for item in base_items:
+        food_id = item["food_id"]
+        state = session.get(f"food_state_{food_id}", "emergency")
+        emergency_items.append({**item, "state": state})
+
+    countdown_item = None  # 今は緊急表示のUI確認が目的なので None 固定
+
+    return render_template(
+        "main.html",
+        emergency_items=emergency_items,
+        countdown_item=countdown_item
+    )
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -52,9 +72,21 @@ def login():
     conn.close()
 
     if user:
-        session["user_id"] = user["user_id"]  # ← 追加
+        # ★列名を必ず確認できるように出す（VSCodeターミナルに表示されます）
+        print("user columns:", user.keys())
+
+        # ★DBの設計差を吸収：よくある主キー名候補を順に試す
+        user_id_value = None
+        for key in ("user_id", "id", "users_id"):
+            if key in user.keys():
+                user_id_value = user[key]
+                break
+
+        if user_id_value is None:
+            return "ユーザーID列が見つかりません。ターミナルの user columns を確認してください。"
+
+        session["user_id"] = user_id_value
         return redirect(url_for("main"))
-        print(user.keys())
     else:
         return "メールアドレスまたはパスワードが違います"
 
@@ -137,6 +169,27 @@ def food_new():
         return redirect(url_for("food"))
 
     return render_template("food_new.html")
+
+# ★注文ボタン押下 → 状態②（注文確認）へ + 外部サイトへ遷移
+@app.route("/order_click/<int:food_id>")
+def order_click(food_id):
+    session[f"food_state_{food_id}"] = "order_confirm"
+    next_url = request.args.get("next")
+    if next_url:
+        return redirect(next_url)
+    return redirect(url_for("main"))
+
+# ★注文確認：「はい」→ 状態③（到着待ち）
+@app.route("/order_yes/<int:food_id>", methods=["POST"])
+def order_yes(food_id):
+    session[f"food_state_{food_id}"] = "waiting_arrival"
+    return redirect(url_for("main"))
+
+# ★注文確認：「いいえ」→ 状態①（緊急）に戻す
+@app.route("/order_no/<int:food_id>", methods=["POST"])
+def order_no(food_id):
+    session[f"food_state_{food_id}"] = "emergency"
+    return redirect(url_for("main"))
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -300,5 +300,16 @@ def reset_state(food_id):
     session.pop(f"food_state_{food_id}", None)
     return redirect(url_for("main"))
 
+# ★Renderで挙動を確認出来たら消す
+@app.route("/test-setup")
+def test_setup():
+    conn = get_db()
+    # テープルにテストデータを直接1件入れる
+    # ※user_idやcat_idは、新規登録した際のもの（通常は1）に合わせてください
+    conn.execute("INSERT INTO cat_food_settings (cat_id, food_id, daily_amount) VALUES (1, 1, 100)")
+    conn.commit()
+    conn.close()
+    return "Test data registered!"
+    
 if __name__ == "__main__":
     app.run()

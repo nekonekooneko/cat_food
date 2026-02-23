@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, session
+from datetime import datetime
+
 import sqlite3
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/css', static_folder='static')
 app.secret_key = "nyans_secret_key"
 
 # DB接続関数
@@ -10,6 +12,49 @@ def get_db():
     conn = sqlite3.connect("cat_app.db")
     conn.row_factory = sqlite3.Row
     return conn
+
+# ---------------------------
+# 毎日1回の残量自動引き落とし
+# ---------------------------
+def deduct_daily_food():
+    conn = get_db()
+
+    # 1. cat_food_settings から user ごとの daily_amount と foods を取得
+    settings = conn.execute("""
+        SELECT c.cat_id, c.name AS cat_name, f.food_id, f.name AS food_name,
+               f.remaining_amount, s.daily_amount
+        FROM cat_food_settings s
+        JOIN foods f ON s.food_id = f.food_id
+        JOIN cats c ON s.cat_id = c.cat_id
+    """).fetchall()
+
+    for s in settings:
+        new_remaining = s["remaining_amount"] - s["daily_amount"]
+        if new_remaining < 0:
+            new_remaining = 0  # 残量がマイナスにならないように
+
+        # 2. foods テーブルを更新
+        conn.execute("""
+            UPDATE foods
+            SET remaining_amount = ?
+            WHERE food_id = ?
+        """, (new_remaining, s["food_id"]))
+
+        # 3. feeding_logs にも記録
+        conn.execute("""
+            INSERT INTO feeding_logs (cat_id, food_id, feeding_date, usage_amount, memo)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            s["cat_id"],
+            s["food_id"],
+            datetime.now(),
+            s["daily_amount"],
+            "自動引き落とし"
+        ))
+
+    conn.commit()
+    conn.close()
+    print("今日の自動残量引き落としが完了しました。")
 
 @app.route("/")
 def index():
@@ -20,26 +65,61 @@ def main():
     if "user_id" not in session:
         return redirect(url_for("index"))
 
+    conn = get_db()
+
+    foods = conn.execute("""
+        SELECT f.food_id, f.name, f.purchase_link,
+               f.remaining_amount, s.daily_amount
+        FROM foods f
+        JOIN cat_food_settings s ON f.food_id = s.food_id
+        JOIN cats c ON s.cat_id = c.cat_id
+        WHERE f.user_id = ?
+    """, (session["user_id"],)).fetchall()
+
+
+
+    conn.close()
+
     # ★UI確認用のダミーデータ（あとでDB連携に差し替える）
-    base_items = [
-        {"food_id": 1, "name": "ご飯A", "purchase_link": "https://example.com/a", "days_left": 2},
-        {"food_id": 2, "name": "ご飯B", "purchase_link": "https://example.com/b", "days_left": 1},
-    ]
-
-    # ★foodごとの状態を session から反映（無ければ emergency 扱い）
     emergency_items = []
-    for item in base_items:
-        food_id = item["food_id"]
-        state = session.get(f"food_state_{food_id}", "emergency")
-        emergency_items.append({**item, "state": state})
 
-    countdown_item = None  # 今は緊急表示のUI確認が目的なので None 固定
+    for f in foods:
+        daily_amount = f["daily_amount"]
+
+        if not daily_amount or daily_amount == 0:
+            days_left = 999
+        else:
+            days_left = int(f["remaining_amount"] / daily_amount)
+
+        food_id = f["food_id"]
+
+        # 在庫3日以下なら emergency
+        if days_left <= 3:
+            emergency_items.append({
+                "food_id": food_id,
+                "name": f["name"],
+                "purchase_link": f["purchase_link"],
+                "days_left": days_left,
+                "state": "emergency"
+            })
+
+        # もしくは state が進行中なら表示
+        else:
+            state = session.get(f"food_state_{food_id}", None)
+
+            if state in ["order_confirm", "waiting_arrival"]:
+                emergency_items.append({
+                    "food_id": food_id,
+                    "name": f["name"],
+                    "purchase_link": f["purchase_link"],
+                    "days_left": days_left,
+                    "state": state
+                })
 
     return render_template(
         "main.html",
         emergency_items=emergency_items,
-        countdown_item=countdown_item
-    )
+        countdown_item=None) # 今は緊急表示のUI確認が目的なので None 固定
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -151,7 +231,7 @@ def food_new():
 
     if request.method == "POST":
         name = request.form["name"]
-        content_amount = request.form["content_amount"]
+        content_amount = float(request.form["content_amount"])
         unit = request.form["unit"]
         purchase_link = request.form["purchase_link"]
 
@@ -170,6 +250,11 @@ def food_new():
 
     return render_template("food_new.html")
 
+@app.route("/run_daily_deduction")
+def run_daily_deduction():
+    deduct_daily_food()
+    return "残量の自動引き落としを実行しました"
+    
 # ★注文ボタン押下 → 状態②（注文確認）へ + 外部サイトへ遷移
 @app.route("/order_click/<int:food_id>")
 def order_click(food_id):
@@ -189,6 +274,12 @@ def order_yes(food_id):
 @app.route("/order_no/<int:food_id>", methods=["POST"])
 def order_no(food_id):
     session[f"food_state_{food_id}"] = "emergency"
+    return redirect(url_for("main"))
+
+# ★stateのリセット：/reset_state/1にアクセスすると food_id=1 の状態をリセット（状態なし）に戻す
+@app.route("/reset_state/<int:food_id>")
+def reset_state(food_id):
+    session.pop(f"food_state_{food_id}", None)
     return redirect(url_for("main"))
 
 if __name__ == "__main__":

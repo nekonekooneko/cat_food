@@ -4,7 +4,7 @@ from datetime import datetime
 import sqlite3
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/css', static_folder='static')
 app.secret_key = "nyans_secret_key"
 
 # DB接続関数
@@ -64,7 +64,62 @@ def index():
 def main():
     if "user_id" not in session:
         return redirect(url_for("index"))
-    return render_template("main.html")
+
+    conn = get_db()
+
+    foods = conn.execute("""
+        SELECT f.food_id, f.name, f.purchase_link,
+               f.remaining_amount, s.daily_amount
+        FROM foods f
+        JOIN cat_food_settings s ON f.food_id = s.food_id
+        JOIN cats c ON s.cat_id = c.cat_id
+        WHERE f.user_id = ?
+    """, (session["user_id"],)).fetchall()
+
+
+
+    conn.close()
+
+    # ★UI確認用のダミーデータ（あとでDB連携に差し替える）
+    emergency_items = []
+
+    for f in foods:
+        daily_amount = f["daily_amount"]
+
+        if not daily_amount or daily_amount == 0:
+            days_left = 999
+        else:
+            days_left = int(f["remaining_amount"] / daily_amount)
+
+        food_id = f["food_id"]
+
+        # 在庫3日以下なら emergency
+        if days_left <= 3:
+            emergency_items.append({
+                "food_id": food_id,
+                "name": f["name"],
+                "purchase_link": f["purchase_link"],
+                "days_left": days_left,
+                "state": "emergency"
+            })
+
+        # もしくは state が進行中なら表示
+        else:
+            state = session.get(f"food_state_{food_id}", None)
+
+            if state in ["order_confirm", "waiting_arrival"]:
+                emergency_items.append({
+                    "food_id": food_id,
+                    "name": f["name"],
+                    "purchase_link": f["purchase_link"],
+                    "days_left": days_left,
+                    "state": state
+                })
+
+    return render_template(
+        "main.html",
+        emergency_items=emergency_items,
+        countdown_item=None) # 今は緊急表示のUI確認が目的なので None 固定
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -97,7 +152,20 @@ def login():
     conn.close()
 
     if user:
-        session["user_id"] = user["user_id"]  # ← 追加
+        # ★列名を必ず確認できるように出す（VSCodeターミナルに表示されます）
+        print("user columns:", user.keys())
+
+        # ★DBの設計差を吸収：よくある主キー名候補を順に試す
+        user_id_value = None
+        for key in ("user_id", "id", "users_id"):
+            if key in user.keys():
+                user_id_value = user[key]
+                break
+
+        if user_id_value is None:
+            return "ユーザーID列が見つかりません。ターミナルの user columns を確認してください。"
+
+        session["user_id"] = user_id_value
         return redirect(url_for("main"))
     else:
         return "メールアドレスまたはパスワードが違います"
@@ -186,6 +254,33 @@ def food_new():
 def run_daily_deduction():
     deduct_daily_food()
     return "残量の自動引き落としを実行しました"
+    
+# ★注文ボタン押下 → 状態②（注文確認）へ + 外部サイトへ遷移
+@app.route("/order_click/<int:food_id>")
+def order_click(food_id):
+    session[f"food_state_{food_id}"] = "order_confirm"
+    next_url = request.args.get("next")
+    if next_url:
+        return redirect(next_url)
+    return redirect(url_for("main"))
+
+# ★注文確認：「はい」→ 状態③（到着待ち）
+@app.route("/order_yes/<int:food_id>", methods=["POST"])
+def order_yes(food_id):
+    session[f"food_state_{food_id}"] = "waiting_arrival"
+    return redirect(url_for("main"))
+
+# ★注文確認：「いいえ」→ 状態①（緊急）に戻す
+@app.route("/order_no/<int:food_id>", methods=["POST"])
+def order_no(food_id):
+    session[f"food_state_{food_id}"] = "emergency"
+    return redirect(url_for("main"))
+
+# ★stateのリセット：/reset_state/1にアクセスすると food_id=1 の状態をリセット（状態なし）に戻す
+@app.route("/reset_state/<int:food_id>")
+def reset_state(food_id):
+    session.pop(f"food_state_{food_id}", None)
+    return redirect(url_for("main"))
 
 if __name__ == "__main__":
     app.run(debug=True)

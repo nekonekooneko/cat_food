@@ -1,30 +1,91 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
 
-<!-- 追加ここから -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Noto+Sans+JP:wght@400;600&display=swap" rel="stylesheet">
-<!-- 追加ここまで -->
+  <!-- 追加ここから -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Noto+Sans+JP:wght@400;600&display=swap" rel="stylesheet">
+  <!-- 追加ここまで -->
 
-<title>メイン</title>
-<link rel="stylesheet" href="css/style.css">
+  <title>メイン</title>
+
+  <!-- CSSは現状のままでOK（反映されない件は一旦無視） -->
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <div class="screen">
-<h1>メインメニュー</h1>
+  <h1>メインメニュー</h1>
 
-<button class="btn-main">愛猫情報</button>
-<button class="btn-main">猫のご飯</button>
+  <button class="btn-main">愛猫情報</button>
+  <button class="btn-main">猫のご飯</button>
 
-<br><br>
-<p style="text-align:center;font-weight:600;">
-次回注文まであと〇日
-</p>
+  <br><br>
+
+  <!-- ↓ ここから通知表示（動的） -->
+  <div style="text-align:center;font-weight:600;">
+
+    {% if emergency_items and emergency_items|length > 0 %}
+      {% for item in emergency_items %}
+        <div style="margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:10px;">
+          <div>
+            {{ item.name }}（残り {{ item.days_left }} 日）
+          </div>
+
+          {% if item.state == "order_confirm" %}
+            <!-- 状態②：注文確認 -->
+            <div style="margin-top:10px;">
+              <div style="margin-bottom:8px;">注文完了しましたか？</div>
+
+              <form action="{{ url_for('order_yes', food_id=item.food_id) }}" method="post" style="display:inline-block; margin-right:8px;">
+                <button type="submit" style="padding:10px 14px; border-radius:10px;">
+                  はい
+                </button>
+              </form>
+
+              <form action="{{ url_for('order_no', food_id=item.food_id) }}" method="post" style="display:inline-block;">
+                <button type="submit" style="padding:10px 14px; border-radius:10px;">
+                  いいえ
+                </button>
+              </form>
+            </div>
+
+          {% elif item.state == "waiting_arrival" %}
+            <!-- 状態③：到着待ち -->
+            <div style="margin-top:10px;">
+              <button type="button" style="padding:10px 14px; border-radius:10px;">
+                ご飯の到着をおまちください
+              </button>
+            </div>
+
+          {% else %}
+            <!-- 状態①：緊急 -->
+            <a href="{{ url_for('order_click', food_id=item.food_id) }}?next={{ item.purchase_link }}"
+               target="_blank" rel="noopener noreferrer"
+               style="display:inline-block; margin-top:10px; padding:10px 14px; border-radius:10px; text-decoration:none;">
+              🔴 直ちに注文してください
+            </a>
+          {% endif %}
+
+        </div>
+      {% endfor %}
+
+    {% elif countdown_item %}
+      <p>
+        次回注文まであと {{ countdown_item.days_left }} 日
+      </p>
+
+    {% else %}
+      <p>
+        次回注文まであと〇日
+      </p>
+    {% endif %}
+
+  </div>
+  <!-- ↑ ここまで通知表示 -->
 
 </div>
 

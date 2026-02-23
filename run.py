@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import datetime
-
 import sqlite3
-
+import os # 追加：ファイルの存在確認用
 
 app = Flask(__name__, static_url_path='/css', static_folder='static')
 app.secret_key = "nyans_secret_key"
@@ -14,12 +13,31 @@ def get_db():
     return conn
 
 # ---------------------------
+# ★ 【追加】テーブル自動作成機能
+# ---------------------------
+def init_db():
+    conn = get_db()
+    # ユーザーテーブル
+    conn.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, password TEXT)")
+    # 猫テーブル
+    conn.execute("CREATE TABLE IF NOT EXISTS cats (cat_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, birth_date TEXT)")
+    # エサテーブル
+    conn.execute("CREATE TABLE IF NOT EXISTS foods (food_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, content_amount REAL, remaining_amount REAL DEFAULT 0, unit TEXT, purchase_link TEXT)")
+    # 設定テーブル
+    conn.execute("CREATE TABLE IF NOT EXISTS cat_food_settings (setting_id INTEGER PRIMARY KEY AUTOINCREMENT, cat_id INTEGER, food_id INTEGER, daily_amount REAL)")
+    # 履歴テーブル
+    conn.execute("CREATE TABLE IF NOT EXISTS feeding_logs (log_id INTEGER PRIMARY KEY AUTOINCREMENT, cat_id INTEGER, food_id INTEGER, feeding_date TEXT, usage_amount REAL, memo TEXT)")
+    conn.commit()
+    conn.close()
+
+# アプリ起動時にテーブルを作成する
+init_db()
+
+# ---------------------------
 # 毎日1回の残量自動引き落とし
 # ---------------------------
 def deduct_daily_food():
     conn = get_db()
-
-    # 1. cat_food_settings から user ごとの daily_amount と foods を取得
     settings = conn.execute("""
         SELECT c.cat_id, c.name AS cat_name, f.food_id, f.name AS food_name,
                f.remaining_amount, s.daily_amount
@@ -31,30 +49,30 @@ def deduct_daily_food():
     for s in settings:
         new_remaining = s["remaining_amount"] - s["daily_amount"]
         if new_remaining < 0:
-            new_remaining = 0  # 残量がマイナスにならないように
+            new_remaining = 0 
 
-        # 2. foods テーブルを更新
         conn.execute("""
             UPDATE foods
             SET remaining_amount = ?
             WHERE food_id = ?
         """, (new_remaining, s["food_id"]))
 
-        # 3. feeding_logs にも記録
         conn.execute("""
             INSERT INTO feeding_logs (cat_id, food_id, feeding_date, usage_amount, memo)
             VALUES (?, ?, ?, ?, ?)
-        """, (
-            s["cat_id"],
-            s["food_id"],
-            datetime.now(),
-            s["daily_amount"],
-            "自動引き落とし"
-        ))
+        """, (s["cat_id"], s["food_id"], datetime.now().strftime("%Y-%m-%d %H:%M:%S"), s["daily_amount"], "自動引き落とし"))
 
     conn.commit()
     conn.close()
     print("今日の自動残量引き落としが完了しました。")
+
+# ---------------------------
+# ★ 【追加】GitHub Actions用の入り口
+# ---------------------------
+@app.route("/cron/update-stock")
+def cron_update_stock():
+    deduct_daily_food()
+    return "Stock update successful", 200
 
 @app.route("/")
 def index():

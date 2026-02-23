@@ -1,0 +1,16 @@
+name: Daily Food Deduction
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # UTCで0時、日本時間は9時
+  workflow_dispatch: # 手動でも実行可能
+
+jobs:
+  deduct_food:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Make HTTP request to Render
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: https://your-app.onrender.com/run_daily_deduction
+          method: GET

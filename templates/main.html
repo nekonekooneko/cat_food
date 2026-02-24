@@ -3,25 +3,21 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
-
-  <!-- 追加ここから -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Noto+Sans+JP:wght@400;600&display=swap" rel="stylesheet">
-  <!-- 追加ここまで -->
 
   <title>メイン</title>
 
-  <!-- CSSは現状のままでOK（反映されない件は一旦無視） -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
 <div class="screen">
   <h1>メインメニュー</h1>
 
-  <button class="btn-main">愛猫情報</button>
-  <button class="btn-main">猫のご飯</button>
+  <button class="btn-main" onclick="location.href='{{ url_for('pets') }}'">愛猫情報</button>
+<button class="btn-main" onclick="location.href='{{ url_for('food') }}'">猫のご飯</button>
 
   <br><br>
 

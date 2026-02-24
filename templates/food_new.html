@@ -4,41 +4,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta charset="UTF-8">
 
-<!-- 追加ここから -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Noto+Sans+JP:wght@400;600&display=swap" rel="stylesheet">
-<!-- 追加ここまで -->
 
 <title>新規ご飯登録</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-    <button class="btn-back">戻る</button>
+<form method="POST">
+<div class="screen">
 
-    <form method="POST" action="/food_new">
+<button type="button"
+        class="btn-back"
+        onclick="location.href='{{ url_for('food') }}'">
+    戻る
+</button>
 
-        <div class="screen">
+<h1>新規ご飯登録</h1>
 
-        <h1>新規ご飯登録</h1>
+<label>名前</label>
+<input type="text" name="name" required>
 
-        <label>名前</label>
-        <input type="text" name="name" required>
+<label>内容量</label>
+<input type="number" step="0.1" name="content_amount" required>
 
-        <label>内容量</label>
-        <input type="text" name="content_amount">
+<label>単位</label>
+<input type="text" name="unit">
 
-        <label>単位</label>
-        <input type="text" name="unit">
+<label>購入リンク</label>
+<input type="text" name="purchase_link">
 
-        <label>購入リンク</label>
-        <input type="text" name="purchase_link">
+<button type="submit" class="btn-main">登録する</button>
 
-        <button type="submit" class="btn-main">登録する</button>
-
-        </div>  
-    </form>
+</div>
+</form>
 
 </body>
 </html>

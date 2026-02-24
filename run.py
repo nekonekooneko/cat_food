@@ -1,10 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import datetime
 import sqlite3
-<<<<<<< ours
-=======
 import os # 追加：ファイルの存在確認用
->>>>>>> theirs
 
 app = Flask(__name__, static_url_path='/css', static_folder='static')
 app.secret_key = "nyans_secret_key"
@@ -45,10 +42,7 @@ init_db()
 # ---------------------------
 def deduct_daily_food():
     conn = get_db()
-<<<<<<< ours
 
-=======
->>>>>>> theirs
     settings = conn.execute("""
         SELECT c.cat_id, f.food_id,
                f.remaining_amount, s.daily_amount
@@ -60,11 +54,7 @@ def deduct_daily_food():
     for s in settings:
         new_remaining = s["remaining_amount"] - s["daily_amount"]
         if new_remaining < 0:
-<<<<<<< ours
             new_remaining = 0
-=======
-            new_remaining = 0 
->>>>>>> theirs
 
         conn.execute("""
             UPDATE foods
@@ -80,30 +70,10 @@ def deduct_daily_food():
     conn.commit()
     conn.close()
 
-<<<<<<< ours
 
 # ---------------------------
 # 画面ルート
 # ---------------------------
-=======
-# ---------------------------
-# ★ 【追加】GitHub Actions用の入り口
-# ---------------------------
-@app.route("/cron/update-stock")
-def cron_update_stock():
-    deduct_daily_food() # 在庫を引く処理を実行
-    
-    # 実行後、最新の在庫をDBから1件取ってくる
-    conn = get_db()
-    food = conn.execute("SELECT name, remaining_amount FROM foods LIMIT 1").fetchone()
-    conn.close()
-    
-    if food:
-        return f"成功！ {food['name']} の現在の残量は {food['remaining_amount']} です。"
-    else:
-        return "成功しましたが、在庫データが見つかりません。"
-
->>>>>>> theirs
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -381,16 +351,6 @@ def order_no(food_id):
     session[f"food_state_{food_id}"] = "emergency"
     return redirect(url_for("main"))
 
-<<<<<<< ours
-
-# ---------------------------
-# サーバー起動（必ず最後）
-# ---------------------------
-if __name__ == "__main__":
-    app.run(debug=True)
-
-    # test
-=======
 # ★stateのリセット：/reset_state/1にアクセスすると food_id=1 の状態をリセット（状態なし）に戻す
 @app.route("/reset_state/<int:food_id>")
 def reset_state(food_id):
@@ -398,5 +358,4 @@ def reset_state(food_id):
     return redirect(url_for("main"))
    
 if __name__ == "__main__":
-    app.run()
->>>>>>> theirs
+    app.run(debug=True)

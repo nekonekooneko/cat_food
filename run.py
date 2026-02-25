@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from datetime import datetime
 import sqlite3
-import os # 追加：ファイルの存在確認用
+import os
+print("DB PATH:", os.path.abspath("cat_app.db"))
 
 app = Flask(__name__, static_url_path='/css', static_folder='static')
 app.secret_key = "nyans_secret_key"
@@ -51,22 +52,28 @@ def deduct_daily_food():
         JOIN cats c ON s.cat_id = c.cat_id
     """).fetchall()
 
+
+    print("取得件数:", len(settings))  # ← ここ
+
     for s in settings:
-        new_remaining = s["remaining_amount"] - s["daily_amount"]
-        if new_remaining < 0:
-            new_remaining = 0
+        print("処理中:", s["food_id"], s["remaining_amount"], s["daily_amount"])  # ← ここ
 
-        conn.execute("""
-            UPDATE foods
-            SET remaining_amount = ?
-            WHERE food_id = ?
-        """, (new_remaining, s["food_id"]))
+        for s in settings:
+            new_remaining = s["remaining_amount"] - s["daily_amount"]
+            if new_remaining < 0:
+                new_remaining = 0
 
-        conn.execute("""
-            INSERT INTO feeding_logs (cat_id, food_id, feeding_date, usage_amount, memo)
-            VALUES (?, ?, ?, ?, ?)
-        """, (s["cat_id"], s["food_id"], datetime.now().strftime("%Y-%m-%d %H:%M:%S"), s["daily_amount"], "自動引き落とし"))
-        
+            conn.execute("""
+                UPDATE foods
+                SET remaining_amount = ?
+                WHERE food_id = ?
+            """, (new_remaining, s["food_id"]))
+
+            conn.execute("""
+                INSERT INTO feeding_logs (cat_id, food_id, feeding_date, usage_amount, memo)
+                VALUES (?, ?, ?, ?, ?)
+            """, (s["cat_id"], s["food_id"], datetime.now().strftime("%Y-%m-%d %H:%M:%S"), s["daily_amount"], "自動引き落とし"))
+            
     conn.commit()
     conn.close()
 
@@ -357,5 +364,22 @@ def reset_state(food_id):
     session.pop(f"food_state_{food_id}", None)
     return redirect(url_for("main"))
    
+# ---------------------------
+# ★ 手動実行用（テスト用）
+# ---------------------------
+@app.route("/run_daily_deduction")
+def run_daily_deduction():
+    if "user_id" not in session:
+        return redirect(url_for("index"))
+
+    deduct_daily_food()
+    return "毎日の自動引き落としを実行しました"
+
+# ★ Github Actionsなどの外部から呼び出す用（認証なし）
+@app.route("/cron/update-stock")
+def cron_update_stock():
+    deduct_daily_food()
+    return "OK"
+
 if __name__ == "__main__":
     app.run(debug=True)

@@ -36,7 +36,7 @@ input{
   margin:8px 0 20px;
   border-radius:12px;
   border:1px solid #ccc;
-  font-size:16px; /* iPhone拡大防止 */
+  font-size:16px;
   background:#fff;
 }
 
@@ -75,30 +75,58 @@ button{
   font-size:14px;
 }
 
+/* ▼ 修正版ここから */
+
 .list-item{
   background:#FFFFFF;
-  padding:16px;
-  border-radius:18px;
-  margin-bottom:14px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+  padding:18px 60px 18px 18px; /* 右に余白を確保 */
+  border-radius:22px;
+  margin-bottom:16px;
   font-size:16px;
+  position:relative;
 }
+
+/* 鉛筆ボタン */
+.edit-btn{
+  position:absolute;
+  right:18px;
+  top:50%;
+  transform:translateY(-50%);
+  background:transparent;
+  border:none;
+  font-size:18px;
+  cursor:pointer;
+  width:auto;
+  padding:0;
+
+  margin-top:0;  
+}
+
+/* ▼ 修正版ここまで */
 
 .plus{
-  position:fixed;
-  right:20px;
-  bottom:25px;
-  width:55px;
-  height:55px;
-  border-radius:16px;
+  position:absolute;
+  right:24px;
+  bottom:24px;
+  width:60px;
+  height:60px;
+  border-radius:18px;
   background:#FFFFFF;
-  font-size:28px;
   border:1px solid #ccc;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:28px;
 }
 
-/* タップ感 */
 button:active{
   transform:scale(0.97);
+}
+
+/* 追加したい場合だけ（style.cssに追記） */
+.info-text{
+  text-align:center;
+  font-size:13px;
+  line-height:1.8;
+  margin-top:18px;
 }

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>愛猫編集</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<form method="POST">
+<div class="screen">
+
+<button type="button"
+        class="btn-back"
+        onclick="location.href='{{ url_for('pets') }}'">
+    戻る
+</button>
+
+<h1>愛猫編集</h1>
+
+<label>名前 必須</label>
+<input type="text" name="name" value="{{ cat.name }}" required>
+
+<label>生年月日</label>
+<input type="date" name="birth_date" value="{{ cat.birth_date }}">
+
+<br><br>
+<button type="submit" class="btn-main">更新する</button>
+
+</div>
+</form>
+
+</body>
+</html>

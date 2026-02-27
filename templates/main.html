@@ -27,43 +27,59 @@
     {% if emergency_items and emergency_items|length > 0 %}
       {% for item in emergency_items %}
         <div style="margin:12px 0; padding:10px; border:1px solid #ddd; border-radius:10px;">
+
+          <!-- 商品名（リンクなし） -->
           <div>
             {{ item.name }}（残り {{ item.days_left }} 日）
           </div>
 
           {% if item.state == "order_confirm" %}
-            <!-- 状態②：注文確認 -->
+            <!-- 注文確認 -->
             <div style="margin-top:10px;">
               <div style="margin-bottom:8px;">注文完了しましたか？</div>
 
               <form action="{{ url_for('order_yes', food_id=item.food_id) }}" method="post" style="display:inline-block; margin-right:8px;">
-                <button type="submit" style="padding:10px 14px; border-radius:10px;">
-                  はい
-                </button>
+                <button type="submit">はい</button>
               </form>
 
               <form action="{{ url_for('order_no', food_id=item.food_id) }}" method="post" style="display:inline-block;">
-                <button type="submit" style="padding:10px 14px; border-radius:10px;">
-                  いいえ
-                </button>
+                <button type="submit">いいえ</button>
               </form>
             </div>
 
           {% elif item.state == "waiting_arrival" %}
-            <!-- 状態③：到着待ち -->
+            <!-- 到着待ち -->
             <div style="margin-top:10px;">
-              <button type="button" style="padding:10px 14px; border-radius:10px;">
-                ご飯の到着をおまちください
-              </button>
+              ご飯の到着をおまちください
             </div>
 
           {% else %}
-            <!-- 状態①：緊急 -->
-            <a href="{{ url_for('order_click', food_id=item.food_id) }}?next={{ item.purchase_link }}"
-               target="_blank" rel="noopener noreferrer"
-               style="display:inline-block; margin-top:10px; padding:10px 14px; border-radius:10px; text-decoration:none;">
-              🔴 直ちに注文してください
-            </a>
+            <!-- 緊急メッセージ（ここだけリンク） -->
+            <div style="margin-top:10px;">
+
+              {% if item.days_left <= 0 %}
+                <a href="{{ url_for('order_click', food_id=item.food_id) }}?next={{ item.purchase_link }}" target="_blank">
+                  🔴🔴🔴🔴 在庫０！直ちに注文し、最寄りへ買いに行ってください！🔴🔴🔴🔴
+                </a>
+
+              {% elif item.days_left == 1 %}
+                <a href="{{ url_for('order_click', food_id=item.food_id) }}?next={{ item.purchase_link }}" target="_blank">
+                  🔴🔴🔴 今日で在庫が無くなります！最寄りで代替品を購入して下さい🔴🔴🔴
+                </a>
+
+              {% elif item.days_left == 2 %}
+                <a href="{{ url_for('order_click', food_id=item.food_id) }}?next={{ item.purchase_link }}" target="_blank">
+                  🔴🔴もう間に合いません！すぐに注文してください！🔴🔴
+                </a>
+
+              {% elif item.days_left == 3 %}
+                <a href="{{ url_for('order_click', food_id=item.food_id) }}?next={{ item.purchase_link }}" target="_blank">
+                  🔴 直ちに注文してください 🔴
+                </a>
+
+              {% endif %}
+
+            </div>
           {% endif %}
 
         </div>
@@ -76,7 +92,7 @@
 
     {% else %}
       <p>
-        次回注文まであと〇日
+        次回注文まで4日以上あります
       </p>
     {% endif %}
 

@@ -199,21 +199,41 @@ def pet_new():
     if "user_id" not in session:
         return redirect(url_for("index"))
 
+    conn = get_db()
+
     if request.method == "POST":
         name = request.form["name"]
         birth_date = request.form["birth_date"]
+        food_id = request.form["food_id"]
+        daily_amount = request.form["daily_amount"]
 
-        conn = get_db()
-        conn.execute(
+        # ① 猫登録（既存そのまま）
+        cur = conn.execute(
             "INSERT INTO cats (user_id, name, birth_date) VALUES (?, ?, ?)",
             (session["user_id"], name, birth_date)
         )
+        cat_id = cur.lastrowid
+
+        # ② 食事設定登録（追加部分）
+        conn.execute(
+            "INSERT INTO cat_food_settings (cat_id, food_id, daily_amount) VALUES (?, ?, ?)",
+            (cat_id, food_id, daily_amount)
+        )
+
         conn.commit()
         conn.close()
 
         return redirect(url_for("pets"))
 
-    return render_template("pet_new.html")
+    # ▼ GET時にfoods取得（追加部分）
+    foods = conn.execute(
+        "SELECT food_id, name, unit FROM foods WHERE user_id = ?",
+        (session["user_id"],)
+    ).fetchall()
+
+    conn.close()
+
+    return render_template("pet_new.html", foods=foods)
 
 
 @app.route("/pet_edit/<int:cat_id>", methods=["GET", "POST"])
@@ -226,23 +246,54 @@ def pet_edit(cat_id):
     if request.method == "POST":
         name = request.form["name"]
         birth_date = request.form["birth_date"]
+        food_id = request.form["food_id"]
+        daily_amount = request.form["daily_amount"]
 
-        conn.execute(
-            "UPDATE cats SET name = ?, birth_date = ? WHERE cat_id = ? AND user_id = ?",
-            (name, birth_date, cat_id, session["user_id"])
-        )
+        # 猫更新
+        conn.execute("""
+            UPDATE cats
+            SET name = ?, birth_date = ?
+            WHERE cat_id = ? AND user_id = ?
+        """, (name, birth_date, cat_id, session["user_id"]))
+
+        # 食事設定更新
+        conn.execute("""
+            UPDATE cat_food_settings
+            SET food_id = ?, daily_amount = ?
+            WHERE cat_id = ?
+        """, (food_id, daily_amount, cat_id))
+
         conn.commit()
         conn.close()
 
         return redirect(url_for("pets"))
 
-    cat = conn.execute(
-        "SELECT * FROM cats WHERE cat_id = ? AND user_id = ?",
-        (cat_id, session["user_id"])
-    ).fetchone()
+    # ▼ GET
+    cat = conn.execute("""
+        SELECT * FROM cats
+        WHERE cat_id = ? AND user_id = ?
+    """, (cat_id, session["user_id"])).fetchone()
+
+    foods = conn.execute("""
+        SELECT food_id, name, unit
+        FROM foods
+        WHERE user_id = ?
+    """, (session["user_id"],)).fetchall()
+
+    setting = conn.execute("""
+        SELECT *
+        FROM cat_food_settings
+        WHERE cat_id = ?
+    """, (cat_id,)).fetchone()
+
     conn.close()
 
-    return render_template("pet_edit.html", cat=cat)
+    return render_template(
+        "pet_edit.html",
+        cat=cat,
+        foods=foods,
+        setting=setting
+    )
 
 
 # ---------------------------

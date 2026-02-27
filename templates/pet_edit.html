@@ -6,6 +6,24 @@
 <title>愛猫編集</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
+<script>
+function updateUnit() {
+    const select = document.getElementById("foodSelect");
+    if (!select) return;
+
+    const selected = select.options[select.selectedIndex];
+    const unit = selected.getAttribute("data-unit");
+    document.getElementById("unitDisplay").textContent = unit || "";
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    updateUnit();
+    document.getElementById("foodSelect")
+            .addEventListener("change", updateUnit);
+});
+</script>
+
 <body>
 
 <form method="POST">
@@ -24,6 +42,26 @@
 
 <label>生年月日</label>
 <input type="date" name="birth_date" value="{{ cat.birth_date }}">
+
+<label>食べるご飯</label>
+<select name="food_id" id="foodSelect">
+{% for food in foods %}
+<option value="{{ food.food_id }}"
+        data-unit="{{ food.unit }}"
+        {% if setting and food.food_id == setting.food_id %}selected{% endif %}>
+    {{ food.name }}
+</option>
+{% endfor %}
+</select>
+
+<label>1日に食べる量</label>
+<div style="display:flex; align-items:center; gap:8px;">
+    <input type="number"
+           step="0.1"
+           name="daily_amount"
+           value="{{ setting.daily_amount if setting }}">
+    <span id="unitDisplay"></span>
+</div>
 
 <br><br>
 <button type="submit" class="btn-main">更新する</button>
